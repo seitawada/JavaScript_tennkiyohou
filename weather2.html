@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Sample</title>
+    <script>
+        const key = "29926b3690179109b8f44a12e2170560";
+    </script>
+    <style>
+        #view {
+            padding: 10px;
+            border: 4px solid #6f28bb;
+            width: 90%;
+            background-color: #e0e0e0;
+            height: 500px;
+            overflow: auto;
+        }
+
+        img {
+            width: 50px;
+        }
+
+        #view>div {
+            border: 1px dotted #3838ab;
+            font-size: medium;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <h1>
+            <span id="area"></span> 天気5日間
+        </h1>
+        <div id="currentTemp" class="bold"></div>
+        <div id="view"></div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+        const icon = "https://openweathermap.org/img/wn/";
+        function getCurrentWeather(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${key}&lang=ja`;
+
+            $.getJSON(url, function (data) {
+
+                const temp = Math.round(data.main.temp - 273.15);
+                const desc = data.weather[0].description;
+
+                $("#currentTemp").html(`現在の気温：${temp}℃（${desc}）`);
+            });
+        }
+        function getWeather(lat, lon) {
+            const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${key}&lang=ja`;
+
+            $.getJSON(url, function (data) {
+
+                let html = "";
+                for (let i = 0; i < data.list.length; i++) {
+
+                    const utc = data.list[i].dt * 1000; // ミリ秒に変換
+                    const date = new Date(utc);
+
+                    // 日本時間に変換
+                    const jst = date.toLocaleString("ja-JP", {
+                        timeZone: "Asia/Tokyo",
+                        hour12: false
+                    });
+
+                    html += `
+        <div>
+            <div>時刻: ${jst}</div>
+            <div>風速: ${data.list[i].wind.speed}m/s</div>
+            <div>天気: ${data.list[i].weather[0].description}</div>
+            <div>降水確率: ${Math.round(data.list[i].pop * 100)}%</div>
+            <div>気温: ${Math.round(data.list[i].main.temp - 273.15)}℃</div>
+            <div>湿度: ${data.list[i].main.humidity}%</div>
+            <div>気圧: ${data.list[i].main.pressure}hPa</div>
+            <div><img src="${icon}${data.list[i].weather[0].icon}@2x.png"></div>
+        </div>
+    `;
+                }
+
+                // 作成したHTMLを埋め込む
+                $("#view").append(html);
+                // 場所
+                $("#area").html(data.city.name);
+            });
+        }
+
+        // 現在地取得
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    lat = position.coords.latitude;
+                    lon = position.coords.longitude;
+                    getWeather(lat, lon);
+                    getCurrentWeather(lat, lon); // ←追加
+                },
+                error => {
+                    alert("位置情報が取得できませんでした。");
+                    console.error(error);
+                }
+            );
+        } else {
+            alert("このブラウザは位置情報に対応していません。");
+        }
+    </script>
+</body>
+
+</html>
